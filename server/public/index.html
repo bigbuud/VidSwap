@@ -14,9 +14,9 @@
   :root { --bg:#0e0d0c; --fg:#f4efe6; --muted:#8a8378; --trash:#e5484d; --keep:#30a46c; --fav:#f5b301; --skip:#6e9bd8; }
   * { box-sizing:border-box; margin:0; }
   html,body { height:100%; background:var(--bg); color:var(--fg); font-family:ui-sans-serif,system-ui,sans-serif; overflow:hidden; touch-action:none; }
-  #card { position:absolute; inset:12px 12px 92px; border-radius:22px; overflow:hidden; background:#000; transition:transform .25s ease, opacity .25s; box-shadow:0 20px 60px #0008; }
-  video { width:100%; height:100%; object-fit:contain; background:#000; }
-  #info { position:absolute; left:0; right:0; bottom:0; padding:40px 14px 12px; background:linear-gradient(transparent,#000d); display:flex; flex-direction:column; gap:8px; }
+  #card { display:flex; flex-direction:column; position:absolute; inset:12px 12px 92px; border-radius:22px; overflow:hidden; background:#000; transition:transform .25s ease, opacity .25s; box-shadow:0 20px 60px #0008; }
+  video { flex:1; min-height:0; width:100%; object-fit:contain; background:#000; }
+  #info { flex:none; padding:10px 14px 12px; background:#171513; border-top:1px solid #fff1; display:flex; flex-direction:column; gap:8px; }
   #nameRow { display:flex; align-items:center; gap:8px; min-height:36px; }
   #name { flex:1; font-size:14px; word-break:break-all; }
   #renForm { flex:1; display:flex; gap:6px; align-items:center; }
