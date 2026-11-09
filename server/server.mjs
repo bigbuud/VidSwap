@@ -52,6 +52,24 @@ async function move(src, destDir) {
   catch (e) { if (e.code !== "EXDEV") throw e; await fsp.copyFile(src, dest); await fsp.unlink(src); }
 }
 
+const fail = (status, message) => Object.assign(new Error(message), { status });
+
+// Nieuwe bestandsnaam (zonder extensie) valideren; de extensie van het origineel blijft behouden
+async function rename(full, newName) {
+  const ext = path.extname(full);
+  let name = String(newName ?? "").trim();
+  if (name.toLowerCase().endsWith(ext.toLowerCase())) name = name.slice(0, -ext.length).trim();
+  if (!name) throw fail(400, "Naam mag niet leeg zijn");
+  if (name.length > 200) throw fail(400, "Naam is te lang");
+  if (/[\\/:*?"<>|\u0000-\u001f]/.test(name)) throw fail(400, 'Naam mag geen \\ / : * ? " < > | bevatten');
+  if (name.startsWith(".") || name.startsWith("@")) throw fail(400, "Naam mag niet met . of @ beginnen");
+  const dest = path.join(path.dirname(full), name + ext);
+  if (dest === full) return full;
+  if (fs.existsSync(dest)) throw fail(409, "Er bestaat al een bestand met die naam");
+  await fsp.rename(full, dest);
+  return dest;
+}
+
 const json = (res, code, body) => { res.writeHead(code, { "content-type": "application/json" }); res.end(JSON.stringify(body)); };
 const readBody = (req) => new Promise((r) => { let d = ""; req.on("data", (c) => (d += c)); req.on("end", () => { try { r(JSON.parse(d || "{}")); } catch { r({}); } }); });
 
@@ -64,8 +82,13 @@ http.createServer(async (req, res) => {
       return json(res, 200, list);
     }
     if (url.pathname === "/api/action" && req.method === "POST") {
-      const { file, action } = await readBody(req);
+      const { file, action, newName } = await readBody(req);
       const full = safe(file);
+      if (!fs.existsSync(full)) throw fail(404, "Bestand bestaat niet (meer)");
+      if (action === "rename") {
+        const dest = await rename(full, newName);
+        return json(res, 200, { ok: true, file: path.relative(VIDEO_DIR, dest) });
+      }
       if (action === "trash") await move(full, TRASH_DIR);
       else if (action === "favorite") await move(full, FAV_DIR);
       else if (action === "keep") { kept.add(file); await saveKept(); }
@@ -76,9 +99,11 @@ http.createServer(async (req, res) => {
       const { size } = await fsp.stat(full);
       const type = MIME[path.extname(full).toLowerCase()] || "application/octet-stream";
       const m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || "");
-      if (m) {
-        const start = m[1] ? Number(m[1]) : 0;
-        const end = m[2] ? Number(m[2]) : size - 1;
+      if (m && (m[1] || m[2])) {
+        // "bytes=-500" = laatste 500 bytes; einde wordt afgekapt op bestandsgrootte
+        const start = m[1] ? Number(m[1]) : Math.max(size - Number(m[2]), 0);
+        const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+        if (start > end || start >= size) { res.writeHead(416, { "content-range": `bytes */${size}` }); return res.end(); }
         res.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-length": end - start + 1, "content-range": `bytes ${start}-${end}/${size}` });
         return fs.createReadStream(full, { start, end }).pipe(res);
       }
@@ -97,6 +122,6 @@ http.createServer(async (req, res) => {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     res.end(html);
   } catch (e) {
-    json(res, 500, { error: String(e.message || e) });
+    json(res, e.status || (e.code === "ENOENT" ? 404 : 500), { error: String(e.message || e) });
   }
 }).listen(PORT, () => console.log(`VidSwap op poort ${PORT}\n  video's:      ${VIDEO_DIR}\n  prullenbak:  ${TRASH_DIR}\n  favorieten:  ${FAV_DIR}`));

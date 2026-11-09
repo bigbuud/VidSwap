@@ -16,10 +16,26 @@
   html,body { height:100%; background:var(--bg); color:var(--fg); font-family:ui-sans-serif,system-ui,sans-serif; overflow:hidden; touch-action:none; }
   #card { position:absolute; inset:12px 12px 92px; border-radius:22px; overflow:hidden; background:#000; transition:transform .25s ease, opacity .25s; box-shadow:0 20px 60px #0008; }
   video { width:100%; height:100%; object-fit:contain; background:#000; }
-  #name { position:absolute; left:0; right:0; bottom:0; padding:28px 16px 14px; background:linear-gradient(transparent,#000c); font-size:14px; word-break:break-all; }
+  #info { position:absolute; left:0; right:0; bottom:0; padding:40px 14px 12px; background:linear-gradient(transparent,#000d); display:flex; flex-direction:column; gap:8px; }
+  #nameRow { display:flex; align-items:center; gap:8px; min-height:36px; }
+  #name { flex:1; font-size:14px; word-break:break-all; }
+  #renForm { flex:1; display:flex; gap:6px; align-items:center; }
+  #renForm[hidden], #nameRow [hidden] { display:none; }
+  #renInput { flex:1; min-width:0; height:36px; border-radius:10px; border:1px solid #fff5; background:#000a; color:var(--fg); padding:0 10px; font:inherit; font-size:14px; }
+  #seekRow { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--fg); font-variant-numeric:tabular-nums; }
+  #seek { flex:1; height:28px; display:flex; align-items:center; cursor:pointer; touch-action:none; }
+  #track { position:relative; width:100%; height:5px; border-radius:3px; background:#fff3; }
+  #fill { position:absolute; inset:0 auto 0 0; width:0; border-radius:3px; background:var(--fav); }
+  #fill::after { content:""; position:absolute; right:-7px; top:50%; width:14px; height:14px; margin-top:-7px; border-radius:50%; background:var(--fg); box-shadow:0 1px 4px #000a; }
+  #ctl { display:flex; justify-content:center; gap:10px; }
+  .c { width:44px; height:44px; border-radius:50%; border:1px solid #fff4; background:#0008; display:inline-flex; align-items:center; justify-content:center; color:var(--fg); cursor:pointer; padding:0; position:relative; }
+  .c svg { width:22px; height:22px; fill:currentColor; }
+  .c small { position:absolute; bottom:3px; font-size:9px; font-weight:700; }
+  .c.sm { width:36px; height:36px; } .c.sm svg { width:18px; height:18px; }
+  .c.on { border-color:var(--fav); color:var(--fav); }
   #stamp { position:absolute; top:24px; left:50%; transform:translateX(-50%); font-weight:800; font-size:28px; letter-spacing:.1em; padding:6px 16px; border:4px solid; border-radius:10px; opacity:0; pointer-events:none; }
   #bar { position:absolute; left:0; right:0; bottom:16px; display:flex; justify-content:center; gap:14px; }
-  button { width:60px; height:60px; border-radius:50%; border:2px solid; background:transparent; font-size:24px; cursor:pointer; color:var(--fg); }
+  #bar button { width:60px; height:60px; border-radius:50%; border:2px solid; background:transparent; font-size:24px; cursor:pointer; color:var(--fg); }
   .t{border-color:var(--trash)} .k{border-color:var(--keep)} .f{border-color:var(--fav)} .s{border-color:var(--skip)}
   #msg { position:absolute; inset:0; display:flex; flex-direction:column; gap:16px; align-items:center; justify-content:center; text-align:center; color:var(--muted); padding:24px; }
   #msg[hidden] { display:none; }
@@ -28,7 +44,32 @@
 </head>
 <body>
 <div id="msg"><img src="/logo.svg" alt="VidSwap" /><span id="msgtext">Laden…</span></div>
-<div id="card" hidden><video id="v" autoplay muted playsinline></video><div id="name"></div><div id="stamp"></div></div>
+<div id="card" hidden>
+  <video id="v" autoplay muted playsinline></video>
+  <div id="info">
+    <div id="nameRow">
+      <span id="name"></span>
+      <button id="ren" class="c sm nodrag" title="Naam wijzigen (F2)" aria-label="Naam wijzigen"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+      <form id="renForm" class="nodrag" hidden>
+        <input id="renInput" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Nieuwe naam" />
+        <button class="c sm" type="submit" title="Opslaan (Enter)" aria-label="Opslaan"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></button>
+        <button class="c sm" type="button" id="renCancel" title="Annuleren (Esc)" aria-label="Annuleren"><svg viewBox="0 0 24 24"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg></button>
+      </form>
+    </div>
+    <div id="seekRow" class="nodrag">
+      <span id="tcur">0:00</span>
+      <div id="seek" role="slider" aria-label="Positie" tabindex="-1"><div id="track"><div id="fill"></div></div></div>
+      <span id="tdur">0:00</span>
+    </div>
+    <div id="ctl" class="nodrag">
+      <button class="c" id="back" title="10 s terug (J)" aria-label="10 seconden terug"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg><small>10</small></button>
+      <button class="c" id="pp" title="Pauze / afspelen (spatie)" aria-label="Pauze of afspelen"></button>
+      <button class="c" id="fwd" title="10 s vooruit (L)" aria-label="10 seconden vooruit"><svg viewBox="0 0 24 24" style="transform:scaleX(-1)"><path d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg><small>10</small></button>
+      <button class="c" id="snd" title="Geluid aan / uit (M)" aria-label="Geluid aan of uit"></button>
+    </div>
+  </div>
+  <div id="stamp"></div>
+</div>
 <div id="bar">
   <button class="t" title="Prullenbak (←)" onclick="act('trash')">🗑</button>
   <button class="s" title="Negeren (↓)" onclick="act('skip')">↓</button>
@@ -36,9 +77,70 @@
   <button class="k" title="Behouden (→)" onclick="act('keep')">♥</button>
 </div>
 <script>
-const card = document.getElementById("card"), v = document.getElementById("v"), nm = document.getElementById("name"), stamp = document.getElementById("stamp"), msg = document.getElementById("msgtext"), msgBox = document.getElementById("msg");
+const $ = (id) => document.getElementById(id);
+const card = $("card"), v = $("v"), nm = $("name"), stamp = $("stamp"), msg = $("msgtext"), msgBox = $("msg");
+const ICON = {
+  play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>',
+  on: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/></svg>',
+  off: '<svg viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12a9 9 0 0 0-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a9 9 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></svg>'
+};
 const LABEL = { trash:["PRULLENBAK","--trash"], keep:["BEHOUDEN","--keep"], favorite:["FAVORIET","--fav"], skip:["NEGEREN","--skip"] };
-let list = [], cur = null, busy = false;
+let list = [], cur = null, busy = false, editing = false;
+
+// Geluid: voorkeur onthouden. Browsers laten alleen geluid toe na een tik/klik; lukt het niet, dan val ik terug op gedempt.
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, x) => { try { localStorage.setItem(k, x); } catch {} } };
+v.muted = store.get("vidswap.sound") !== "1";
+function play() { return v.play().catch(() => { if (!v.muted) { v.muted = true; return v.play().catch(() => {}); } }); }
+function setSound(on) { v.muted = !on; store.set("vidswap.sound", on ? "1" : "0"); if (on && v.paused) play(); }
+const fmt = (t) => { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); };
+function sync() {
+  $("pp").innerHTML = v.paused ? ICON.play : ICON.pause;
+  $("snd").innerHTML = v.muted ? ICON.off : ICON.on; $("snd").classList.toggle("on", !v.muted);
+}
+function progress() {
+  const d = v.duration, t = v.currentTime;
+  $("tcur").textContent = fmt(t); $("tdur").textContent = fmt(d);
+  $("fill").style.width = (isFinite(d) && d > 0 ? Math.min(t / d, 1) * 100 : 0) + "%";
+}
+const skip = (s) => { if (isFinite(v.duration)) v.currentTime = Math.min(Math.max(v.currentTime + s, 0), v.duration); };
+const toggle = () => (v.paused ? play() : v.pause());
+["play", "pause", "volumechange"].forEach((e) => v.addEventListener(e, sync));
+["timeupdate", "loadedmetadata", "durationchange"].forEach((e) => v.addEventListener(e, progress));
+$("pp").onclick = toggle; $("snd").onclick = () => setSound(v.muted);
+$("back").onclick = () => skip(-10); $("fwd").onclick = () => skip(10);
+sync();
+
+// Doorspoelen: tik of sleep op de balk
+const seek = $("seek");
+function seekTo(e) { const r = seek.getBoundingClientRect(); if (isFinite(v.duration)) v.currentTime = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1) * v.duration; }
+seek.addEventListener("pointerdown", (e) => { seek.setPointerCapture(e.pointerId); seekTo(e); });
+seek.addEventListener("pointermove", (e) => { if (seek.hasPointerCapture(e.pointerId)) seekTo(e); });
+
+// Naam wijzigen (extensie blijft behouden)
+const base = (f) => f.slice(f.lastIndexOf("/") + 1).replace(/\.[^.]*$/, "");
+function startRename() {
+  if (!cur || editing) return; editing = true;
+  $("renInput").value = base(cur);
+  $("name").hidden = $("ren").hidden = true; $("renForm").hidden = false;
+  $("renInput").focus(); $("renInput").select();
+}
+function endRename() { editing = false; if (document.activeElement?.matches?.("input")) document.activeElement.blur(); $("renForm").hidden = true; $("name").hidden = $("ren").hidden = false; }
+$("ren").onclick = startRename; $("renCancel").onclick = endRename;
+$("renForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const newName = $("renInput").value.trim(), old = cur;
+  if (!newName || newName === base(old)) return endRename();
+  const r = await fetch("/api/action", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ file: old, action: "rename", newName }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { alert("Fout: " + (d.error || r.status)); return $("renInput").focus(); }
+  endRename();
+  if (cur !== old) return; // intussen al doorgeswiped
+  const t = v.currentTime, was = !v.paused;
+  cur = d.file; nm.textContent = cur;
+  v.src = "/video?f=" + encodeURIComponent(cur); // oude URL bestaat niet meer, anders zou doorspoelen stuk gaan
+  v.addEventListener("loadedmetadata", () => { v.currentTime = t; if (was) play(); }, { once: true });
+});
 
 async function load() {
   list = await (await fetch("/api/videos")).json();
@@ -49,16 +151,18 @@ function next() {
   card.style.transition = "none"; card.style.transform = ""; card.style.opacity = 1; stamp.style.opacity = 0;
   if (!cur) { card.hidden = true; msgBox.hidden = false; msg.textContent = "Geen video's meer 🎉"; return; }
   card.hidden = false; msgBox.hidden = true;
-  v.src = "/video?f=" + encodeURIComponent(cur); nm.textContent = cur;
-  v.play().catch(() => {});
+  endRename();
+  v.src = "/video?f=" + encodeURIComponent(cur); nm.textContent = cur; progress();
+  play();
 }
-v.addEventListener("ended", () => { v.currentTime = 0; v.play(); });
-v.addEventListener("click", () => { v.muted = !v.muted; });
+v.addEventListener("ended", () => { v.currentTime = 0; play(); });
+let moved = false; // een swipe mag niet ook als tik (pauze) tellen
+v.addEventListener("click", () => { if (moved) { moved = false; return; } toggle(); });
 
 function showStamp(a, o) { const [t,c] = LABEL[a]; stamp.textContent = t; stamp.style.color = stamp.style.borderColor = `var(${c})`; stamp.style.opacity = o; }
 
 async function act(a) {
-  if (!cur || busy) return; busy = true;
+  if (!cur || busy || editing) return; busy = true;
   const d = { trash:[-1,0], keep:[1,0], favorite:[0,-1], skip:[0,1] }[a];
   showStamp(a, 1);
   card.style.transition = "transform .3s ease, opacity .3s";
@@ -73,9 +177,10 @@ async function act(a) {
 
 // swipe
 let sx = 0, sy = 0, drag = false;
-card.addEventListener("pointerdown", (e) => { drag = true; sx = e.clientX; sy = e.clientY; card.style.transition = "none"; });
+card.addEventListener("pointerdown", (e) => { if (e.target.closest(".nodrag")) return; moved = false; drag = true; sx = e.clientX; sy = e.clientY; card.style.transition = "none"; });
 window.addEventListener("pointermove", (e) => {
   if (!drag) return; const dx = e.clientX - sx, dy = e.clientY - sy;
+  if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moved = true;
   card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx/20}deg)`;
   const a = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "trash" : "keep") : (dy < 0 ? "favorite" : "skip");
   showStamp(a, Math.min(Math.max(Math.abs(dx), Math.abs(dy)) / 120, 1));
@@ -86,7 +191,17 @@ window.addEventListener("pointerup", (e) => {
   else if (Math.abs(dy) > T) act(dy < 0 ? "favorite" : "skip");
   else { card.style.transition = "transform .2s"; card.style.transform = ""; stamp.style.opacity = 0; }
 });
-window.addEventListener("keydown", (e) => ({ ArrowLeft:"trash", ArrowRight:"keep", ArrowUp:"favorite", ArrowDown:"skip" })[e.key] && act({ ArrowLeft:"trash", ArrowRight:"keep", ArrowUp:"favorite", ArrowDown:"skip" }[e.key]));
+window.addEventListener("keydown", (e) => {
+  if (e.target.matches("input") || e.ctrlKey || e.metaKey || e.altKey) { if (e.key === "Escape" && editing) endRename(); return; }
+  const A = { ArrowLeft: "trash", ArrowRight: "keep", ArrowUp: "favorite", ArrowDown: "skip" };
+  const k = e.key.toLowerCase();
+  if (A[e.key]) { e.preventDefault(); act(A[e.key]); }
+  else if (k === " " || k === "k") { e.preventDefault(); toggle(); }
+  else if (k === "m") setSound(v.muted);
+  else if (k === "j") skip(-10);
+  else if (k === "l") skip(10);
+  else if (e.key === "F2" || k === "r") { e.preventDefault(); startRename(); }
+});
 load().catch((e) => msg.textContent = "Fout bij laden: " + e);
 </script>
 </body>

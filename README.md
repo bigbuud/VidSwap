@@ -17,7 +17,21 @@ Sorteer je videobestanden zoals je swipet op Tinder. VidSwap draait als kleine c
 | ↑ omhoog | `↑` | Verplaatsen naar `_favorieten` |
 | ↓ omlaag | `↓` | Negeren (alleen deze sessie overslaan) |
 
-Video's starten gedempt (vereist door browsers). Tik op de video om het geluid aan of uit te zetten.
+### Afspelen en hernoemen
+
+Video's starten gedempt (browsers staan geen geluid toe voor je iets hebt aangetikt) en herhalen tot je swipet. Onder elke video staan:
+
+- **Voortgangsbalk**: tik of sleep om door te spoelen.
+- **10 s terug / vooruit** en **pauze / afspelen**. Een tik op de video pauzeert ook.
+- **Geluidsknop**: zet het geluid aan of uit. Je keuze wordt onthouden in je browser.
+- **Potlood**: wijzig de bestandsnaam. De extensie blijft behouden, het bestand blijft in dezelfde map en bestaande bestanden worden nooit overschreven.
+
+| Toets | Actie |
+|:-----:|-------|
+| `spatie` / `K` | Pauze of afspelen |
+| `M` | Geluid aan of uit |
+| `J` / `L` | 10 seconden terug / vooruit |
+| `F2` / `R` | Naam wijzigen (`Enter` bewaart, `Esc` annuleert) |
 
 ## Mappenstructuur
 
@@ -37,7 +51,7 @@ Ondersteunde formaten: `mp4`, `m4v`, `webm`, `mov`, `mkv`, `ogv` (afspelen hangt
 
 ## Installeren op Synology
 
-Je hoeft de repository niet naar de NAS te kopiëren. GitHub bouwt het image automatisch (`.github/workflows/docker.yml`) en zet het op `ghcr.io`; de NAS haalt het zelf op.
+Je hoeft de repository niet naar de NAS te kopiëren. GitHub bouwt het image automatisch (`.github/workflows/docker-image.yml`) en zet het op `ghcr.io`; de NAS haalt het zelf op.
 
 **Eenmalig op GitHub**
 1. Push deze repository naar [github.com/bigbuud/VidSwap](https://github.com/bigbuud/VidSwap) (branch `main`). De workflow start vanzelf en publiceert `ghcr.io/bigbuud/vidswap:latest`.
@@ -90,7 +104,7 @@ VIDEO_DIR=/pad/naar/testvideos PORT=8080 node server.mjs
 │   ├── server.mjs          # HTTP-server: video's lijst, streamen (Range), acties
 │   └── public/             # de app (index.html), logo, icons en manifest
 ├── docs/banner.png
-├── .github/workflows/docker.yml   # bouwt en publiceert het image
+├── .github/workflows/docker-image.yml   # bouwt en publiceert het image
 ├── Dockerfile
 ├── docker-compose.yml
 └── .env.example
@@ -101,7 +115,7 @@ VIDEO_DIR=/pad/naar/testvideos PORT=8080 node server.mjs
 | Route | Omschrijving |
 |-------|--------------|
 | `GET /api/videos` | Willekeurig geschudde lijst van nog te sorteren video's |
-| `POST /api/action` | `{ "file": "pad/naar.mp4", "action": "trash" \| "favorite" \| "keep" }` |
+| `POST /api/action` | `{ "file": "pad/naar.mp4", "action": "trash" \| "favorite" \| "keep" \| "rename", "newName": "..." }` |
 | `GET /video?f=pad/naar.mp4` | Stream met ondersteuning voor spoelen |
 | `GET /healthz` | Healthcheck |
 
