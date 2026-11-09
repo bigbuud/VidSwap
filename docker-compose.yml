@@ -1,0 +1,47 @@
+# VidSwap – Synology (Container Manager → Project) of `docker compose up -d`
+#
+# Het image wordt door GitHub Actions gebouwd en op ghcr.io gezet, de NAS haalt het zelf op.
+# Je hoeft dus niets van de repository naar de NAS te kopiëren: plak dit bestand in
+# Container Manager (Project → Aanmaken → docker-compose.yml).
+#
+# Mappenstructuur op de NAS (alles binnen één share, dus verplaatsen is instant):
+#
+#   /volume1/map1/map2/            ← VIDEO_PATH  (hier staan je te sorteren video's)
+#   ├── ...jouw video's...
+#   ├── _prullenbak/               ← swipe links   (wordt automatisch aangemaakt)
+#   ├── _favorieten/               ← swipe omhoog  (wordt automatisch aangemaakt)
+#   └── .vidswap-kept.json      ← swipe rechts: onthoudt wat je behoudt
+#
+# Instellingen aanpassen? Kopieer .env.example naar .env, of pas de standaardwaarden hieronder aan.
+
+services:
+  vidswap:
+    image: ghcr.io/bigbuud/vidswap:latest
+    # Liever rechtstreeks uit git bouwen op de NAS? Vervang de regel hierboven door:
+    # build: https://github.com/bigbuud/VidSwap.git#main
+    pull_policy: always
+    container_name: vidswap
+    restart: unless-stopped
+
+    # Synology-gebruiker met schrijfrechten op de share
+    user: "${PUID:-1026}:${PGID:-100}"
+
+    ports:
+      - "${PORT:-8085}:8080"
+
+    volumes:
+      - ${VIDEO_PATH:-/volume1/map1/map2}:/videos
+
+    environment:
+      VIDEO_DIR: /videos
+      # Relatief aan VIDEO_DIR (absoluut pad mag ook). Worden aangemaakt als ze ontbreken.
+      TRASH_DIR: ${TRASH_FOLDER:-_prullenbak}
+      FAV_DIR: ${FAV_FOLDER:-_favorieten}
+      TZ: Europe/Brussels
+
+    # Container is alleen schrijfbaar in /videos
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp

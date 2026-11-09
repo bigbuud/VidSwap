@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="VidSwap">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1a18"/>
+      <stop offset="1" stop-color="#0e0d0c"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b2723"/>
+      <stop offset="1" stop-color="#181614"/>
+    </linearGradient>
+    <linearGradient id="play" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd24a"/>
+      <stop offset="1" stop-color="#f5a301"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- kaarten achter: links = prullenbak, rechts = behouden -->
+  <g transform="rotate(-16 256 276)">
+    <rect x="132" y="104" width="248" height="320" rx="38" fill="#e5484d" opacity=".9"/>
+  </g>
+  <g transform="rotate(16 256 276)">
+    <rect x="132" y="104" width="248" height="320" rx="38" fill="#30a46c" opacity=".9"/>
+  </g>
+  <!-- voorste kaart -->
+  <rect x="132" y="96" width="248" height="320" rx="38" fill="url(#front)" stroke="#f4efe6" stroke-opacity=".14" stroke-width="4"/>
+  <path d="M222 190 L222 322 Q222 336 234 329 L340 263 Q352 256 340 249 L234 183 Q222 176 222 190 Z" fill="url(#play)" transform="translate(0 4)"/>
+  <!-- voortgangsbalk -->
+  <rect x="172" y="364" width="168" height="10" rx="5" fill="#f4efe6" opacity=".14"/>
+  <rect x="172" y="364" width="84" height="10" rx="5" fill="#f4efe6" opacity=".7"/>
+</svg>

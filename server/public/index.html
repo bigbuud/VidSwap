@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>VidSwap</title>
+<meta name="theme-color" content="#0e0d0c" />
+<meta name="description" content="Tinder voor je videobestanden" />
+<link rel="icon" type="image/svg+xml" href="/logo.svg" />
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<style>
+  :root { --bg:#0e0d0c; --fg:#f4efe6; --muted:#8a8378; --trash:#e5484d; --keep:#30a46c; --fav:#f5b301; --skip:#6e9bd8; }
+  * { box-sizing:border-box; margin:0; }
+  html,body { height:100%; background:var(--bg); color:var(--fg); font-family:ui-sans-serif,system-ui,sans-serif; overflow:hidden; touch-action:none; }
+  #card { position:absolute; inset:12px 12px 92px; border-radius:22px; overflow:hidden; background:#000; transition:transform .25s ease, opacity .25s; box-shadow:0 20px 60px #0008; }
+  video { width:100%; height:100%; object-fit:contain; background:#000; }
+  #name { position:absolute; left:0; right:0; bottom:0; padding:28px 16px 14px; background:linear-gradient(transparent,#000c); font-size:14px; word-break:break-all; }
+  #stamp { position:absolute; top:24px; left:50%; transform:translateX(-50%); font-weight:800; font-size:28px; letter-spacing:.1em; padding:6px 16px; border:4px solid; border-radius:10px; opacity:0; pointer-events:none; }
+  #bar { position:absolute; left:0; right:0; bottom:16px; display:flex; justify-content:center; gap:14px; }
+  button { width:60px; height:60px; border-radius:50%; border:2px solid; background:transparent; font-size:24px; cursor:pointer; color:var(--fg); }
+  .t{border-color:var(--trash)} .k{border-color:var(--keep)} .f{border-color:var(--fav)} .s{border-color:var(--skip)}
+  #msg { position:absolute; inset:0; display:flex; flex-direction:column; gap:16px; align-items:center; justify-content:center; text-align:center; color:var(--muted); padding:24px; }
+  #msg[hidden] { display:none; }
+  #msg img { width:88px; height:88px; border-radius:20px; }
+</style>
+</head>
+<body>
+<div id="msg"><img src="/logo.svg" alt="VidSwap" /><span id="msgtext">Laden…</span></div>
+<div id="card" hidden><video id="v" autoplay muted playsinline></video><div id="name"></div><div id="stamp"></div></div>
+<div id="bar">
+  <button class="t" title="Prullenbak (←)" onclick="act('trash')">🗑</button>
+  <button class="s" title="Negeren (↓)" onclick="act('skip')">↓</button>
+  <button class="f" title="Favoriet (↑)" onclick="act('favorite')">★</button>
+  <button class="k" title="Behouden (→)" onclick="act('keep')">♥</button>
+</div>
+<script>
+const card = document.getElementById("card"), v = document.getElementById("v"), nm = document.getElementById("name"), stamp = document.getElementById("stamp"), msg = document.getElementById("msgtext"), msgBox = document.getElementById("msg");
+const LABEL = { trash:["PRULLENBAK","--trash"], keep:["BEHOUDEN","--keep"], favorite:["FAVORIET","--fav"], skip:["NEGEREN","--skip"] };
+let list = [], cur = null, busy = false;
+
+async function load() {
+  list = await (await fetch("/api/videos")).json();
+  next();
+}
+function next() {
+  cur = list.shift();
+  card.style.transition = "none"; card.style.transform = ""; card.style.opacity = 1; stamp.style.opacity = 0;
+  if (!cur) { card.hidden = true; msgBox.hidden = false; msg.textContent = "Geen video's meer 🎉"; return; }
+  card.hidden = false; msgBox.hidden = true;
+  v.src = "/video?f=" + encodeURIComponent(cur); nm.textContent = cur;
+  v.play().catch(() => {});
+}
+v.addEventListener("ended", () => { v.currentTime = 0; v.play(); });
+v.addEventListener("click", () => { v.muted = !v.muted; });
+
+function showStamp(a, o) { const [t,c] = LABEL[a]; stamp.textContent = t; stamp.style.color = stamp.style.borderColor = `var(${c})`; stamp.style.opacity = o; }
+
+async function act(a) {
+  if (!cur || busy) return; busy = true;
+  const d = { trash:[-1,0], keep:[1,0], favorite:[0,-1], skip:[0,1] }[a];
+  showStamp(a, 1);
+  card.style.transition = "transform .3s ease, opacity .3s";
+  card.style.transform = `translate(${d[0]*120}vw, ${d[1]*120}vh) rotate(${d[0]*20}deg)`; card.style.opacity = 0;
+  const file = cur; v.pause(); v.removeAttribute("src"); v.load();
+  if (a !== "skip") {
+    const r = await fetch("/api/action", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ file, action:a }) });
+    if (!r.ok) alert("Fout: " + (await r.json()).error);
+  }
+  setTimeout(() => { busy = false; next(); }, 300);
+}
+
+// swipe
+let sx = 0, sy = 0, drag = false;
+card.addEventListener("pointerdown", (e) => { drag = true; sx = e.clientX; sy = e.clientY; card.style.transition = "none"; });
+window.addEventListener("pointermove", (e) => {
+  if (!drag) return; const dx = e.clientX - sx, dy = e.clientY - sy;
+  card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx/20}deg)`;
+  const a = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "trash" : "keep") : (dy < 0 ? "favorite" : "skip");
+  showStamp(a, Math.min(Math.max(Math.abs(dx), Math.abs(dy)) / 120, 1));
+});
+window.addEventListener("pointerup", (e) => {
+  if (!drag) return; drag = false; const dx = e.clientX - sx, dy = e.clientY - sy, T = 100;
+  if (Math.abs(dx) > T && Math.abs(dx) > Math.abs(dy)) act(dx < 0 ? "trash" : "keep");
+  else if (Math.abs(dy) > T) act(dy < 0 ? "favorite" : "skip");
+  else { card.style.transition = "transform .2s"; card.style.transform = ""; stamp.style.opacity = 0; }
+});
+window.addEventListener("keydown", (e) => ({ ArrowLeft:"trash", ArrowRight:"keep", ArrowUp:"favorite", ArrowDown:"skip" })[e.key] && act({ ArrowLeft:"trash", ArrowRight:"keep", ArrowUp:"favorite", ArrowDown:"skip" }[e.key]));
+load().catch((e) => msg.textContent = "Fout bij laden: " + e);
+</script>
+</body>
+</html>
