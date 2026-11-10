@@ -11,6 +11,7 @@ const VIDEO_DIR = path.resolve(process.env.VIDEO_DIR || "/videos");
 const resolveDir = (v, fallback) => path.resolve(VIDEO_DIR, v || fallback);
 const TRASH_DIR = resolveDir(process.env.TRASH_DIR, "_prullenbak");
 const FAV_DIR = resolveDir(process.env.FAV_DIR, "_favorieten");
+const KEEP_DIR = resolveDir(process.env.KEEP_DIR, "_behouden");
 const STATE_FILE = process.env.STATE_FILE || path.join(VIDEO_DIR, ".vidswap-kept.json");
 const EXT = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv", ".ogv"]);
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
@@ -19,16 +20,25 @@ const MIME = { ".mp4": "video/mp4", ".m4v": "video/mp4", ".webm": "video/webm", 
 
 await fsp.mkdir(TRASH_DIR, { recursive: true });
 await fsp.mkdir(FAV_DIR, { recursive: true });
+await fsp.mkdir(KEEP_DIR, { recursive: true });
 
 // Migratie: statusbestand uit de tijd dat de app nog VideoSwipe heette
 const OLD_STATE = path.join(VIDEO_DIR, ".videoswipe-kept.json");
 if (!process.env.STATE_FILE && !fs.existsSync(STATE_FILE) && fs.existsSync(OLD_STATE)) await fsp.rename(OLD_STATE, STATE_FILE);
 
-let kept = new Set();
-try { kept = new Set(JSON.parse(await fsp.readFile(STATE_FILE, "utf8"))); } catch {}
-const saveKept = () => fsp.writeFile(STATE_FILE, JSON.stringify([...kept]));
+// Migratie: vroeger werd "behouden" alleen in een JSON-lijst onthouden. Die bestanden gaan nu eenmalig naar KEEP_DIR.
+if (fs.existsSync(STATE_FILE)) {
+  let moved = 0;
+  try {
+    for (const rel of JSON.parse(await fsp.readFile(STATE_FILE, "utf8"))) {
+      try { const full = safe(rel); if (fs.existsSync(full)) { await move(full, KEEP_DIR); moved++; } } catch (e) { console.warn("Migratie overgeslagen:", rel, e.message); }
+    }
+    await fsp.rename(STATE_FILE, STATE_FILE + ".migrated");
+    console.log(`Migratie: ${moved} behouden video('s) verplaatst naar ${KEEP_DIR}`);
+  } catch (e) { console.warn("Migratie van", STATE_FILE, "mislukt:", e.message); }
+}
 
-const excluded = [TRASH_DIR, FAV_DIR];
+const excluded = [TRASH_DIR, FAV_DIR, KEEP_DIR];
 async function scan(dir, out = []) {
   for (const e of await fsp.readdir(dir, { withFileTypes: true })) {
     const full = path.join(dir, e.name);
@@ -77,7 +87,7 @@ http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://x");
     if (url.pathname === "/api/videos") {
-      const list = (await scan(VIDEO_DIR)).filter((f) => !kept.has(f));
+      const list = await scan(VIDEO_DIR);
       for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
       return json(res, 200, list);
     }
@@ -91,7 +101,8 @@ http.createServer(async (req, res) => {
       }
       if (action === "trash") await move(full, TRASH_DIR);
       else if (action === "favorite") await move(full, FAV_DIR);
-      else if (action === "keep") { kept.add(file); await saveKept(); }
+      else if (action === "keep") await move(full, KEEP_DIR);
+      else throw fail(400, "Onbekende actie");
       return json(res, 200, { ok: true });
     }
     if (url.pathname === "/video") {
@@ -124,4 +135,4 @@ http.createServer(async (req, res) => {
   } catch (e) {
     json(res, e.status || (e.code === "ENOENT" ? 404 : 500), { error: String(e.message || e) });
   }
-}).listen(PORT, () => console.log(`VidSwap op poort ${PORT}\n  video's:      ${VIDEO_DIR}\n  prullenbak:  ${TRASH_DIR}\n  favorieten:  ${FAV_DIR}`));
+}).listen(PORT, () => console.log(`VidSwap op poort ${PORT}\n  video's:      ${VIDEO_DIR}\n  prullenbak:  ${TRASH_DIR}\n  favorieten:  ${FAV_DIR}\n  behouden:    ${KEEP_DIR}`));

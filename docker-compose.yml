@@ -10,7 +10,7 @@
 #   ├── ...jouw video's...
 #   ├── _prullenbak/               ← swipe links   (wordt automatisch aangemaakt)
 #   ├── _favorieten/               ← swipe omhoog  (wordt automatisch aangemaakt)
-#   └── .vidswap-kept.json      ← swipe rechts: onthoudt wat je behoudt
+#   └── _behouden/                 ← swipe rechts  (wordt automatisch aangemaakt)
 #
 # Instellingen aanpassen? Kopieer .env.example naar .env, of pas de standaardwaarden hieronder aan.
 
@@ -37,6 +37,7 @@ services:
       # Relatief aan VIDEO_DIR (absoluut pad mag ook). Worden aangemaakt als ze ontbreken.
       TRASH_DIR: ${TRASH_FOLDER:-_prullenbak}
       FAV_DIR: ${FAV_FOLDER:-_favorieten}
+      KEEP_DIR: ${KEEP_FOLDER:-_behouden}
       TZ: Europe/Brussels
 
     # Container is alleen schrijfbaar in /videos

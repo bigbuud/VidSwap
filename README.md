@@ -13,7 +13,7 @@ Sorteer je videobestanden zoals je swipet op Tinder. VidSwap draait als kleine c
 | Swipe | Toets | Actie |
 |:-----:|:-----:|-------|
 | ← links | `←` | Verplaatsen naar `_prullenbak` |
-| → rechts | `→` | Behouden (komt niet meer terug) |
+| → rechts | `→` | Verplaatsen naar `_behouden` |
 | ↑ omhoog | `↑` | Verplaatsen naar `_favorieten` |
 | ↓ omlaag | `↓` | Negeren (alleen deze sessie overslaan) |
 
@@ -42,10 +42,12 @@ map2/
 ├── ...jouw video's (ook in submappen)...
 ├── _prullenbak/            ← swipe links, wordt automatisch aangemaakt
 ├── _favorieten/            ← swipe omhoog, wordt automatisch aangemaakt
-└── .vidswap-kept.json   ← swipe rechts: onthoudt wat je behoudt
+└── _behouden/              ← swipe rechts, wordt automatisch aangemaakt
 ```
 
-De mappen `_prullenbak` en `_favorieten`, verborgen mappen en Synology's `@eaDir` worden niet meegenomen bij het afspelen. Naamconflicten worden opgelost door een tijdstempel aan de bestandsnaam toe te voegen. De prullenbak wordt **niet** automatisch geleegd, dat doe je zelf wanneer je zeker bent.
+De mappen `_prullenbak`, `_favorieten` en `_behouden`, verborgen mappen en Synology's `@eaDir` worden niet meegenomen bij het afspelen. Naamconflicten worden opgelost door een tijdstempel aan de bestandsnaam toe te voegen. De prullenbak wordt **niet** automatisch geleegd, dat doe je zelf wanneer je zeker bent.
+
+> **Upgraden vanaf een eerdere versie:** video's die je eerder had behouden stonden in een verborgen lijst (`.vidswap-kept.json`). Bij de eerste start worden die bestanden eenmalig naar `_behouden` verplaatst en wordt de lijst hernoemd naar `.vidswap-kept.json.migrated`.
 
 Ondersteunde formaten: `mp4`, `m4v`, `webm`, `mov`, `mkv`, `ogv` (afspelen hangt af van wat je browser ondersteunt).
 
@@ -83,8 +85,9 @@ Rechtstreeks in `docker-compose.yml` aanpassen, of via een `.env`-bestand naast 
 | `PORT` | `8085` | Poort waarop je de app opent |
 | `TRASH_FOLDER` | `_prullenbak` | Map voor weggegooide video's, relatief aan `VIDEO_PATH` |
 | `FAV_FOLDER` | `_favorieten` | Map voor favorieten, relatief aan `VIDEO_PATH` |
+| `KEEP_FOLDER` | `_behouden` | Map voor behouden video's, relatief aan `VIDEO_PATH` |
 
-De server zelf (`server/server.mjs`) leest daarnaast `VIDEO_DIR`, `TRASH_DIR`, `FAV_DIR`, `STATE_FILE` en `PORT` uit de omgeving.
+De server zelf (`server/server.mjs`) leest daarnaast `VIDEO_DIR`, `TRASH_DIR`, `FAV_DIR`, `KEEP_DIR` en `PORT` uit de omgeving.
 
 ## Lokaal draaien (zonder Docker)
 
