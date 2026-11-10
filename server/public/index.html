@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>VidSwap</title>
 <meta name="theme-color" content="#0e0d0c" />
 <meta name="description" content="Tinder voor je videobestanden" />
@@ -10,11 +10,19 @@
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <link rel="manifest" href="/manifest.webmanifest" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="VidSwap" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="format-detection" content="telephone=no" />
 <style>
   :root { --bg:#0e0d0c; --fg:#f4efe6; --muted:#8a8378; --trash:#e5484d; --keep:#30a46c; --fav:#f5b301; --skip:#6e9bd8; }
-  * { box-sizing:border-box; margin:0; }
-  html,body { height:100%; background:var(--bg); color:var(--fg); font-family:ui-sans-serif,system-ui,sans-serif; overflow:hidden; touch-action:none; }
-  #card { display:flex; flex-direction:column; position:absolute; inset:12px 12px 92px; border-radius:22px; overflow:hidden; background:#000; transition:transform .25s ease, opacity .25s; box-shadow:0 20px 60px #0008; }
+  :root { --st:env(safe-area-inset-top,0px); --sr:env(safe-area-inset-right,0px); --sb:env(safe-area-inset-bottom,0px); --sl:env(safe-area-inset-left,0px); }
+  * { box-sizing:border-box; margin:0; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; background:var(--bg); color:var(--fg); font-family:ui-sans-serif,system-ui,sans-serif; overflow:hidden; touch-action:none; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  input { -webkit-user-select:text; user-select:text; }
+  #card { display:flex; flex-direction:column; position:absolute; inset:calc(12px + var(--st)) calc(12px + var(--sr)) calc(92px + var(--sb)) calc(12px + var(--sl)); border-radius:22px; overflow:hidden; background:#000; transition:transform .25s ease, opacity .25s; box-shadow:0 20px 60px #0008; }
+  #card[hidden] { display:none; }
   video { flex:1; min-height:0; width:100%; object-fit:contain; background:#000; }
   #info { flex:none; padding:10px 14px 12px; background:#171513; border-top:1px solid #fff1; display:flex; flex-direction:column; gap:8px; }
   #nameRow { display:flex; align-items:center; gap:8px; min-height:36px; }
@@ -34,16 +42,22 @@
   .c.sm { width:36px; height:36px; } .c.sm svg { width:18px; height:18px; }
   .c.on { border-color:var(--fav); color:var(--fav); }
   #stamp { position:absolute; top:24px; left:50%; transform:translateX(-50%); font-weight:800; font-size:28px; letter-spacing:.1em; padding:6px 16px; border:4px solid; border-radius:10px; opacity:0; pointer-events:none; }
-  #bar { position:absolute; left:0; right:0; bottom:16px; display:flex; justify-content:center; gap:14px; }
+  #bar { position:absolute; left:0; right:0; bottom:calc(16px + var(--sb)); display:flex; justify-content:center; gap:14px; }
   #bar button { width:60px; height:60px; border-radius:50%; border:2px solid; background:transparent; font-size:24px; cursor:pointer; color:var(--fg); }
   #bar .t{border-color:var(--trash)} #bar .k{border-color:var(--keep)} #bar .f{border-color:var(--fav)} #bar .s{border-color:var(--skip)}
   #msg { position:absolute; inset:0; display:flex; flex-direction:column; gap:16px; align-items:center; justify-content:center; text-align:center; color:var(--muted); padding:24px; }
   #msg[hidden] { display:none; }
   #msg img { width:88px; height:88px; border-radius:20px; }
+  #retry { height:44px; padding:0 22px; border-radius:22px; border:1px solid #fff4; background:#171513; color:var(--fg); font:inherit; font-size:15px; cursor:pointer; }
+  #retry[hidden], #install[hidden] { display:none; }
+  #install { position:fixed; z-index:10; top:calc(8px + var(--st)); left:50%; transform:translateX(-50%); display:flex; align-items:center; border-radius:20px; border:1px solid var(--fav); background:#171513f2; color:var(--fg); font-size:13px; box-shadow:0 4px 16px #000a; }
+  #install button { background:none; border:0; color:inherit; font:inherit; cursor:pointer; padding:9px 12px; }
+  #install button + button { padding-left:4px; opacity:.6; }
 </style>
 </head>
 <body>
-<div id="msg"><img src="/logo.svg" alt="VidSwap" /><span id="msgtext">Laden…</span></div>
+<div id="msg"><img src="/logo.svg" alt="VidSwap" /><span id="msgtext">Laden…</span><button id="retry" hidden>Opnieuw proberen</button></div>
+<div id="install" hidden><button id="installBtn">App installeren</button><button id="installX" aria-label="Sluiten">✕</button></div>
 <div id="card" hidden>
   <video id="v1" muted playsinline preload="auto"></video>
   <video id="v2" muted playsinline preload="auto" hidden></video>
@@ -217,7 +231,34 @@ window.addEventListener("keydown", (e) => {
   else if (k === "l") skip(10);
   else if (e.key === "F2" || k === "r") { e.preventDefault(); startRename(); }
 });
-load().catch((e) => msg.textContent = "Fout bij laden: " + e);
+async function start() {
+  $("retry").hidden = true; msgBox.hidden = false; msg.textContent = "Laden…";
+  try { await load(); }
+  catch (e) {
+    card.hidden = true; msgBox.hidden = false;
+    msg.textContent = navigator.onLine === false ? "Geen verbinding. Controleer of je met het netwerk van je NAS verbonden bent." : "VidSwap-server niet bereikbaar.";
+    $("retry").hidden = false;
+  }
+}
+$("retry").onclick = start;
+// Na terugkeren naar de app (of netwerk terug) automatisch opnieuw proberen als er niets te zien is
+const retryIfIdle = () => { if (!cur && !$("retry").hidden) start(); };
+window.addEventListener("online", retryIfIdle);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) retryIfIdle(); });
+start();
+
+// Installeren als app (Android/Chrome/Edge). Op iPhone: Delen → Zet op beginscherm (zie README).
+let installEvt = null;
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault(); installEvt = e;
+  if (!standalone && store.get("vidswap.installHidden") !== "1") $("install").hidden = false;
+});
+$("installBtn").onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; $("install").hidden = true; };
+$("installX").onclick = () => { $("install").hidden = true; store.set("vidswap.installHidden", "1"); };
+window.addEventListener("appinstalled", () => { $("install").hidden = true; });
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 </script>
 </body>
 </html>

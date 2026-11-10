@@ -74,6 +74,31 @@ Via SSH kan ook: `sudo docker compose up -d` in de map met je compose-bestand.
 
 Tip: voeg de pagina toe aan je beginscherm op je telefoon, dan opent VidSwap als een app.
 
+## Als app op je telefoon
+
+VidSwap is een Progressive Web App (PWA). Geïnstalleerd opent hij schermvullend, zonder adresbalk, met een eigen icoon en een eigen venster in de app-switcher. Er is geen APK en geen app store nodig, en niemand anders kan de app vinden. De app-schil wordt bewaard, dus VidSwap opent altijd en toont een duidelijke melding als je NAS niet bereikbaar is (de video's zelf komen natuurlijk van de NAS).
+
+### Eerst: HTTPS
+
+Android (Chrome, Edge) installeert een webapp alleen echt als de pagina via **HTTPS** wordt geopend. Via `http://<nas-ip>:8085` maakt Android er alleen een snelkoppeling van, en de service worker werkt dan niet. Kies een van deze twee manieren:
+
+**A. Tailscale (privé, aanbevolen)**: alleen jouw eigen apparaten kunnen erbij, ook onderweg.
+1. Installeer Tailscale op de NAS (Package Center) en op je telefoon, met hetzelfde account.
+2. Zet in het Tailscale-beheerpaneel *MagicDNS* en *HTTPS Certificates* aan.
+3. Voer op de NAS uit: `tailscale serve --bg 8085`. Meer over Synology in de [Tailscale-documentatie](https://tailscale.com/kb/1131/synology).
+4. Open op je telefoon `https://<naam-van-je-nas>.<tailnet>.ts.net`.
+
+**B. Reverse proxy van Synology**: Configuratiescherm → Aanmeldingsportaal → Geavanceerd → *Reverse Proxy* → Aanmaken: bron `HTTPS`, hostnaam bijvoorbeeld `vidswap.<jouw-naam>.synology.me`, poort 443; bestemming `HTTP`, `localhost`, poort `8085`. Vraag daarna onder Beveiliging → Certificaat een Let's Encrypt-certificaat aan voor die hostnaam en koppel het aan de proxyregel.
+
+> VidSwap heeft geen inlog en kan bestanden verplaatsen en hernoemen. Open poort 443 daarom **niet** naar internet zonder extra beveiliging. Met optie A blijft alles privé.
+
+### Installeren
+
+- **Android (Chrome):** open de HTTPS-link. Tik op *App installeren* bovenin VidSwap, of kies ⋮ → *App installeren* (dus niet "Toevoegen aan startscherm"). De app verschijnt in je app-lijst.
+- **iPhone (Safari):** tik op Delen → *Zet op beginscherm*. VidSwap opent daarna schermvullend als app.
+
+Updates gaan vanzelf: na een nieuwe versie op de NAS krijgt de app die bij de volgende keer openen.
+
 ## Instellingen
 
 Rechtstreeks in `docker-compose.yml` aanpassen, of via een `.env`-bestand naast de compose (zie `.env.example`):
@@ -105,7 +130,7 @@ VIDEO_DIR=/pad/naar/testvideos PORT=8080 node server.mjs
 .
 ├── server/
 │   ├── server.mjs          # HTTP-server: video's lijst, streamen (Range), acties
-│   └── public/             # de app (index.html), logo, icons en manifest
+│   └── public/             # de app (index.html), service worker, manifest, logo en icons
 ├── docs/banner.png
 ├── .github/workflows/docker-image.yml   # bouwt en publiceert het image
 ├── Dockerfile

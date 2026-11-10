@@ -15,7 +15,7 @@ const KEEP_DIR = resolveDir(process.env.KEEP_DIR, "_behouden");
 const STATE_FILE = process.env.STATE_FILE || path.join(VIDEO_DIR, ".vidswap-kept.json");
 const EXT = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv", ".ogv"]);
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
-const STATIC = { ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json", ".html": "text/html; charset=utf-8" };
+const STATIC = { ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json", ".js": "text/javascript; charset=utf-8", ".html": "text/html; charset=utf-8" };
 const MIME = { ".mp4": "video/mp4", ".m4v": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".mkv": "video/x-matroska", ".ogv": "video/ogg" };
 
 await fsp.mkdir(TRASH_DIR, { recursive: true });
@@ -126,7 +126,7 @@ http.createServer(async (req, res) => {
     const asset = path.join(PUBLIC, path.normalize(decodeURIComponent(url.pathname)));
     const ext = path.extname(asset).toLowerCase();
     if (url.pathname !== "/" && asset.startsWith(PUBLIC + path.sep) && STATIC[ext] && fs.existsSync(asset)) {
-      res.writeHead(200, { "content-type": STATIC[ext], "cache-control": "public, max-age=86400" });
+      res.writeHead(200, { "content-type": STATIC[ext], "cache-control": ext === ".js" ? "no-cache" : "public, max-age=86400" });
       return fs.createReadStream(asset).pipe(res);
     }
     const html = await fsp.readFile(path.join(PUBLIC, "index.html"));
